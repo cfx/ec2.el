@@ -6,6 +6,8 @@
 
 (setq *ec2-login* "cfx")
 (setq *ec2-ssh-cmd* "vzp ")
+;;(setq *ec2-shell-cmd "aws ec2 describe-instances")
+(setq *ec2-shell-cmd* "cat o.txt")
 
 
 (defun ec2-json-find (x l &optional fn)
@@ -103,9 +105,6 @@
                      "launch time:  %s\n"
                      "zone:         %s\n"
                      )))
-
-
-
         (insert
          (format template
                  (ec2-find-instance-name inst)
@@ -115,11 +114,9 @@
                  (ec2-json-find-val :ImageId inst)
                  (ec2-json-find-val :InstanceType inst)
                  (ec2-json-find-val :LaunchTime inst)
-                 (ec2-json-find-val :AvailabilityZone inst)
-                 ))
+                 (ec2-json-find-val :AvailabilityZone inst)))
 
-        (read-only-mode t)))
-
+        (local-set-key (kbd "q") 'kill-this-buffer)))
     (switch-to-buffer buf)))
 
 (defun ec2-find-instance-ip (instance)
@@ -127,10 +124,18 @@
 
 
 (defun ec2-find-instance-name (instance)
-  (concat "" (ec2-json-find
-              :Key instance (lambda (_ l)
-                              (if (equal (cadr l) "Name")
-                                  (ec2-json-find-val :Value l))))))
+  (let ((tags (ec2-json-find-val :Tags instance))
+        (res nil))
+
+    (mapc
+     (lambda (pair)
+       (ec2-json-find :Key
+                      pair
+                      (lambda (_ l)
+                        (if (equal (cadr l) "Name")
+                            (setq res (ec2-json-find-val :Value pair))))))
+     tags) (if res res "")))
+
 
 
 (defun ec2-extract-instances (instances)
@@ -164,9 +169,10 @@
 (defun ec2 ()
   (interactive)
   (message "Connecting...")
-  (let* ((str (shell-command-to-string "aws ec2 describe-instances"))
+  (let* ((str (shell-command-to-string *ec2-shell-cmd*))
          (json-object-type 'plist)
          (instances (ec2-json-find-val :Reservations
-                                            (json-read-from-string str))))
+                                       (json-read-from-string str))))
+
     (setq *ec2-instances* (ec2-extract-instances instances))
     (ec2-create-main-buf (ec2-build-instances-list))))
