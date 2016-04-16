@@ -1,3 +1,4 @@
+(require 'cl)
 (require 'json)
 
 (defvar *ec2-login* nil)
@@ -181,7 +182,7 @@
 
 (defun ec2/shell ()
   (interactive)
-  (let ((buf-name "*ec2-shell-output*")
+  (lexical-let ((buf-name "*ec2-shell-output*")
         (proc-name "ec2-proc")
         (ips (mapconcat 'identity *ec2-selected-hosts* ",")))
 
@@ -191,7 +192,6 @@
                                   "rcmd" "-H" ips "-c" *ec2-rcmd-c* "-q"))
 
       (pop-to-buffer buf-name)
-
       (local-set-key (kbd "k")
                      (lambda ()
                        (interactive)
