@@ -186,18 +186,23 @@
         (proc-name "ec2-proc")
         (ips (mapconcat 'identity *ec2-selected-hosts* ",")))
 
-    (with-output-to-temp-buffer buf-name
-      (apply 'start-process (list proc-name
-                                  buf-name
-                                  "rcmd" "-H" ips "-c" *ec2-rcmd-c* "-q"))
+    (if (equal ips "")
+        (message "No host(s) selected")
 
-      (pop-to-buffer buf-name)
-      (local-set-key (kbd "k")
-                     (lambda ()
-                       (interactive)
-                       (delete-process proc-name)))
+      (with-output-to-temp-buffer buf-name
+        (apply 'start-process (list proc-name
+                                    buf-name
+                                    "rcmd" "-H" ips "-c" *ec2-rcmd-c* "-q"))
 
-      (local-set-key (kbd "q") 'kill-this-buffer))))
+        (pop-to-buffer buf-name)
+        (local-set-key (kbd "k")
+                       (lambda ()
+                         (interactive)
+                         (delete-process proc-name)))
+
+        (local-set-key (kbd "q") 'kill-this-buffer)))))
+
+
 
 
 (defun ec2 ()
